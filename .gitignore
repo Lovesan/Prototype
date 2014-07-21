@@ -1,0 +1,5 @@
+*.fasl
+*.fsl
+*.obj
+*.wx32fsl
+*.wx64fsl
