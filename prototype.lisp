@@ -127,23 +127,43 @@
   (:method ((object prototype-object) new-prototype)
     (setf (prototype object) new-prototype)))
 
+#+lispworks
+(defun find-slot (class slot-name)
+  (find-if (lambda (slot) 
+             (eq (slot-definition-name slot) slot-name))
+           (closer-mop:compute-slots class)))
+
 (defmethod slot-boundp-using-class ((class prototype-class) object slotd)
+  #+lispworks (setf slotd (find-slot class slotd))
   (if (eq :hash (slot-definition-allocation slotd))
     (nth-value 1 (gethash (slot-definition-name slotd) (hash object)))
     (call-next-method)))
 
 (defmethod slot-makunbound-using-class ((class prototype-class) object slotd)
+  #+lispworks (setf slotd (find-slot class slotd))
   (if (eq :hash (slot-definition-allocation slotd))
     (remhash (slot-definition-name slotd) (hash object))
     (call-next-method)))
 
 (defmethod slot-value-using-class ((class prototype-class) object slotd)
+  #+lispworks
+  (let ((slot-obj (find-slot class slotd)))
+    (if (not slot-obj)
+        (return-from slot-value-using-class
+          (slot-missing class object slotd 'slot-value))
+      (setf slotd slot-obj)))
   (if (eq :hash (slot-definition-allocation slotd))
     (values (gethash (slot-definition-name slotd) (hash object)))
     (standard-instance-access object (slot-definition-location slotd))))
 
 (defmethod (setf slot-value-using-class)
     (new-value (class prototype-class) object slotd)
+  #+lispworks
+  (let ((slot-obj (find-slot class slotd)))
+    (if (not slot-obj)
+        (return-from slot-value-using-class
+          (slot-missing class object slotd 'setf new-value))
+      (setf slotd slot-obj)))
   (if (eq :hash (slot-definition-allocation slotd))
     (values (setf (gethash (slot-definition-name slotd) (hash object))
                   new-value))
