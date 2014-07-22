@@ -30,4 +30,12 @@
   :serial t
   :components ((:file "prototype")))
 
+(defmethod perform ((o asdf:test-op) (c (eql (find-system :prototype))))
+    (declare (ignorable o c))    
+    (asdf:load-system :prototype-test)    
+    (let ((test-res (funcall (find-symbol "RUN-TESTS" :prototype-test))))
+      (if (funcall (find-symbol "FAILURES" :lift) test-res)
+          (break "TESTS FAILED. TESTS RESULTS: ~S" test-res))
+      test-res))
+
 ;;;; vim: ft=lisp et
