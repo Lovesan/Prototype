@@ -131,7 +131,7 @@
 (defun find-slot (class slot-name)
   (find-if (lambda (slot) 
              (eq (slot-definition-name slot) slot-name))
-           (closer-mop:compute-slots class)))
+           (class-slots class)))
 
 (defmethod slot-boundp-using-class ((class prototype-class) object slotd)
   #+lispworks (setf slotd (find-slot class slotd))
