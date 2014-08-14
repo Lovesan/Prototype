@@ -131,8 +131,8 @@
 (defun find-slot (class slot)
   (when (typep slot 'slot-definition)
     (return-from find-slot slot))
-  (find-if (lambda (slot) 
-             (eq (slot-definition-name slot) slot))
+  (find-if (lambda (slot-def) 
+             (eq (slot-definition-name slot-def) slot))
            (class-slots class)))
 
 (defmethod slot-boundp-using-class ((class prototype-class) object slotd)
