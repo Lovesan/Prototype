@@ -34,9 +34,14 @@
    #:prototype-class
    #:prototype-object
    #:prototype-of
-   #:change-prototype))
+   #:change-prototype
+   #:*walk-prototype*
+   #:remove-direct-slot
+   #:clear-direct-slots))
 
 (in-package #:prototype)
+
+(defparameter *walk-prototype* t)
 
 (defclass prototype-class (standard-class)
   ()
@@ -122,6 +127,13 @@
     (when (typep class 'prototype-class)
       (prototype object))))
 
+(defun remove-direct-slot (slot object)
+  (remhash slot (hash object)))
+
+(defun clear-direct-slots (proto-obj &key excludes)
+  (loop :for slot :being :the :hash-key :in (hash proto-obj) :using (:hash-value value)
+        :if (not (member slot excludes)) :do (remove-direct-slot slot proto-obj)))
+
 (defgeneric change-prototype (object new-prototype)
   (:documentation "Changes prototype of OBJECT to NEW-PROTOTYPE")
   (:method ((object prototype-object) new-prototype)
@@ -136,13 +148,25 @@
            (class-slots class)))
 
 (defmethod slot-boundp-using-class ((class prototype-class) object slotd)
-  #+lispworks (setf slotd (find-slot class slotd))
+;  #+lispworks (setf slotd (find-slot class slotd))
+  #+lispworks
+  (let ((slot-obj (find-slot class slotd)))
+    (if (not slot-obj)
+        (return-from slot-boundp-using-class
+          (slot-missing class object slotd 'slot-boundp))
+      (setf slotd slot-obj)))
   (if (eq :hash (slot-definition-allocation slotd))
     (nth-value 1 (gethash (slot-definition-name slotd) (hash object)))
     (call-next-method)))
 
 (defmethod slot-makunbound-using-class ((class prototype-class) object slotd)
-  #+lispworks (setf slotd (find-slot class slotd))
+;  #+lispworks (setf slotd (find-slot class slotd))
+  #+lispworks
+  (let ((slot-obj (find-slot class slotd)))
+    (if (not slot-obj)
+        (return-from slot-makunbound-using-class
+          (slot-missing class object slotd 'slot-makunbound))
+      (setf slotd slot-obj)))
   (if (eq :hash (slot-definition-allocation slotd))
     (remhash (slot-definition-name slotd) (hash object))
     (call-next-method)))
@@ -188,11 +212,13 @@ of it is missing from class definition."
                (slot-value
                 (if present
                   value
-                  (slot-value prototype slot)))
+                  (when *walk-prototype* 
+                    (slot-value prototype slot))))
                (slot-boundp
                 (if present
                   t
-                  (slot-boundp prototype slot))))))))))
+                  (when *walk-prototype* 
+                    (slot-boundp prototype slot)))))))))))
 
 (defmethod slot-missing
     ((class prototype-class) instance slot op &optional new-value)
