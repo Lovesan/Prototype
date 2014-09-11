@@ -37,11 +37,16 @@
    #:change-prototype
    #:*walk-prototype*
    #:remove-direct-slot
-   #:clear-direct-slots))
+   #:clear-direct-slots
+   #:*fn-no-inherit-p*))
 
 (in-package #:prototype)
 
 (defparameter *walk-prototype* t)
+(defparameter *fn-no-inherit-p* nil)
+
+;;Internal
+(defparameter *direct-access* t)
 
 (defclass prototype-class (standard-class)
   ()
@@ -181,6 +186,29 @@
   (if (eq :hash (slot-definition-allocation slotd))
     (values (gethash (slot-definition-name slotd) (hash object)))
     (standard-instance-access object (slot-definition-location slotd))))
+
+(defun ensure-slot-symbol (slotd)
+  (typecase slotd
+    (symbol slotd)
+    (slot-definition (slot-definition-name slotd))))
+
+(defun slot-direct-value (class object slotd)
+  (gethash (ensure-slot-symbol slotd)
+           (standard-instance-access object (slot-definition-location (find-slot class 'hash)))))
+
+(defmethod slot-value-using-class :around ((class prototype-class) object slotd &aux value cur-direct-access)
+  (if (not *fn-no-inherit-p*)
+      (call-next-method)
+    (progn
+      (setf cur-direct-access *direct-access*)
+      (let ((*direct-access* nil))
+        (if cur-direct-access
+            (call-next-method)
+          (progn
+            (setf value (slot-direct-value class object slotd))
+            (if (funcall *fn-no-inherit-p* value)
+                (slot-value-using-class class (prototype-of object) slotd)
+              (call-next-method))))))))
 
 (defmethod (setf slot-value-using-class)
     (new-value (class prototype-class) object slotd)
