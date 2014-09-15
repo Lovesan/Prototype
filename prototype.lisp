@@ -38,7 +38,8 @@
    #:*walk-prototype*
    #:remove-direct-slot
    #:clear-direct-slots
-   #:*fn-no-inherit-p*))
+   #:*fn-no-inherit-p*
+   #:reset-slots))
 
 (in-package #:prototype)
 
@@ -207,7 +208,9 @@
           (progn
             (setf value (slot-direct-value class object slotd))
             (if (funcall *fn-no-inherit-p* value)
-                (slot-value-using-class class (prototype-of object) slotd)
+                (let ((proto (prototype-of object)))
+                  (when proto
+                    (slot-value-using-class class proto slotd)))
               (call-next-method))))))))
 
 (defmethod (setf slot-value-using-class)
@@ -257,4 +260,7 @@ of it is missing from class definition."
           (%slot-missing class instance slot op new-value))
       (prototype-missing () nil))))
 
+(defmethod reset-slots ((prototype-object prototype-object))
+  (change-prototype prototype-object nil)
+  (clrhash (slot-value prototype-object 'hash)))
 ;;;; vim: ft=lisp et
