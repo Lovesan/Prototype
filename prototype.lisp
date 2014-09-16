@@ -22,32 +22,9 @@
 ;;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 ;;; DEALINGS IN THE SOFTWARE.
 
-(in-package #:cl-user)
-
-(defpackage #:prototype
-  #.(list* :shadowing-import-from
-           '#:closer-mop
-           (loop :for symbol :being :the :external-symbols :in '#:closer-mop
-                 :collect symbol))
-  (:use #:cl #:closer-mop)
-  (:export
-   #:prototype-class
-   #:prototype-object
-   #:prototype-of
-   #:change-prototype
-   #:*walk-prototype*
-   #:remove-direct-slot
-   #:clear-direct-slots
-   #:*fn-no-inherit-p*
-   #:reset-slots))
-
 (in-package #:prototype)
 
 (defparameter *walk-prototype* t)
-(defparameter *fn-no-inherit-p* nil)
-
-;;Internal
-(defparameter *direct-access* t)
 
 (defclass prototype-class (standard-class)
   ()
@@ -137,21 +114,13 @@
   (remhash slot (hash object)))
 
 (defun clear-direct-slots (proto-obj &key excludes)
-  (loop :for slot :being :the :hash-key :in (hash proto-obj) :using (:hash-value value)
+  (loop :for slot :being :the :hash-key :in (hash proto-obj)
         :if (not (member slot excludes)) :do (remove-direct-slot slot proto-obj)))
 
 (defgeneric change-prototype (object new-prototype)
   (:documentation "Changes prototype of OBJECT to NEW-PROTOTYPE")
   (:method ((object prototype-object) new-prototype)
     (setf (prototype object) new-prototype)))
-
-#+lispworks
-(defun find-slot (class slot)
-  (when (typep slot 'slot-definition)
-    (return-from find-slot slot))
-  (find-if (lambda (slot-def) 
-             (eq (slot-definition-name slot-def) slot))
-           (class-slots class)))
 
 (defmethod slot-boundp-using-class ((class prototype-class) object slotd)
 ;  #+lispworks (setf slotd (find-slot class slotd))
@@ -187,31 +156,6 @@
   (if (eq :hash (slot-definition-allocation slotd))
     (values (gethash (slot-definition-name slotd) (hash object)))
     (standard-instance-access object (slot-definition-location slotd))))
-
-(defun ensure-slot-symbol (slotd)
-  (typecase slotd
-    (symbol slotd)
-    (slot-definition (slot-definition-name slotd))))
-
-(defun slot-direct-value (class object slotd)
-  (gethash (ensure-slot-symbol slotd)
-           (standard-instance-access object (slot-definition-location (find-slot class 'hash)))))
-
-(defmethod slot-value-using-class :around ((class prototype-class) object slotd &aux value cur-direct-access)
-  (if (not *fn-no-inherit-p*)
-      (call-next-method)
-    (progn
-      (setf cur-direct-access *direct-access*)
-      (let ((*direct-access* nil))
-        (if cur-direct-access
-            (call-next-method)
-          (progn
-            (setf value (slot-direct-value class object slotd))
-            (if (funcall *fn-no-inherit-p* value)
-                (let ((proto (prototype-of object)))
-                  (when proto
-                    (slot-value-using-class class proto slotd)))
-              (call-next-method))))))))
 
 (defmethod (setf slot-value-using-class)
     (new-value (class prototype-class) object slotd)

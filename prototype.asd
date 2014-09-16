@@ -28,7 +28,10 @@
   :maintainer "Dmitry Ignatiev <lovesan.ru at gmail.com>"
   :depends-on (#:closer-mop)
   :serial t
-  :components ((:file "prototype")))
+  :components ((:file "package")
+               (:file "mop-utils")
+               (:file "prototype")
+               (:file "prototype-ext")))
 
 (defmethod perform ((o asdf:test-op) (c (eql (find-system :prototype))))
     (declare (ignorable o c))    
