@@ -16,5 +16,6 @@
    #:remove-direct-slot
    #:clear-direct-slots
    #:reset-slots
+   #:direct-slots-alist
    #:prototype-object-ext
    #:fn-no-inherit))

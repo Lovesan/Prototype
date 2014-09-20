@@ -89,5 +89,14 @@
                                                                  (eq :skip (first val)))))
                          (slot-value bar 'slot2))))
                '("other-data1" (:SKIP "other-data2") "some-data2")))
+
+(addtest test-direct-slots-alist
+  (ensure-same (let ((obj (make-instance 'prototype-object))
+                     res)
+                 (setf (slot-value obj 'slot1) 'val1)
+                 (setf (slot-value obj 'slot2) 'val2)
+                 (setf res (direct-slots-alist obj))
+                 (list (assoc 'slot1 res) (assoc 'slot2 res)))
+               '((slot1 . val1) (slot2 . val2))))
                          
 

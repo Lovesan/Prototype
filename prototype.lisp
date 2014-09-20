@@ -208,3 +208,19 @@ of it is missing from class definition."
   (change-prototype prototype-object nil)
   (clrhash (slot-value prototype-object 'hash)))
 ;;;; vim: ft=lisp et
+
+(defun hash-table-alist (table)
+  "Returns an association list containing the keys and values of hash table
+TABLE."
+  (let ((alist nil))
+    (maphash (lambda (k v)
+               (push (cons k v) alist))
+             table)
+    alist))
+
+(defgeneric direct-slots-alist (prototype-object)
+  (:documentation "Get direct slots as associated list"))
+
+(defmethod direct-slots-alist ((prototype-object prototype-object))
+  (hash-table-alist (hash prototype-object)))
+
