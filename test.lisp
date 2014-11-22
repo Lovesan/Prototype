@@ -73,3 +73,30 @@
                  )
                '(nil (t nil) t the-value (nil nil) (0 1) nil 456 789 456 123)))
 
+(addtest skip-slots-test
+  (ensure-same (let* ((*walk-prototype* t)
+                      (proto (make-instance 'prototype-object-ext))
+                      (foo (make-instance 'prototype-object-ext :prototype proto))
+                      (bar (make-instance 'prototype-object-ext :prototype foo)))
+                 (setf (slot-value proto 'slot1) "some-data")
+                 (setf (slot-value proto 'slot2) "some-data2")
+                 (setf (slot-value foo 'slot1) "other-data1" )
+                 (setf (slot-value foo 'slot2) '(:skip "other-data2"))
+                 (list (slot-value bar 'slot1)
+                       (slot-value bar 'slot2)
+                       (progn (setf (fn-no-inherit foo) (lambda (val)
+                                                            (and (consp val)
+                                                                 (eq :skip (first val)))))
+                         (slot-value bar 'slot2))))
+               '("other-data1" (:SKIP "other-data2") "some-data2")))
+
+(addtest test-direct-slots-alist
+  (ensure-same (let ((obj (make-instance 'prototype-object))
+                     res)
+                 (setf (slot-value obj 'slot1) 'val1)
+                 (setf (slot-value obj 'slot2) 'val2)
+                 (setf res (direct-slots-alist obj))
+                 (list (assoc 'slot1 res) (assoc 'slot2 res)))
+               '((slot1 . val1) (slot2 . val2))))
+                         
+

@@ -22,23 +22,6 @@
 ;;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 ;;; DEALINGS IN THE SOFTWARE.
 
-(in-package #:cl-user)
-
-(defpackage #:prototype
-  #.(list* :shadowing-import-from
-           '#:closer-mop
-           (loop :for symbol :being :the :external-symbols :in '#:closer-mop
-                 :collect symbol))
-  (:use #:cl #:closer-mop)
-  (:export
-   #:prototype-class
-   #:prototype-object
-   #:prototype-of
-   #:change-prototype
-   #:*walk-prototype*
-   #:remove-direct-slot
-   #:clear-direct-slots))
-
 (in-package #:prototype)
 
 (defparameter *walk-prototype* t)
@@ -131,21 +114,13 @@
   (remhash slot (hash object)))
 
 (defun clear-direct-slots (proto-obj &key excludes)
-  (loop :for slot :being :the :hash-key :in (hash proto-obj) :using (:hash-value value)
+  (loop :for slot :being :the :hash-key :in (hash proto-obj)
         :if (not (member slot excludes)) :do (remove-direct-slot slot proto-obj)))
 
 (defgeneric change-prototype (object new-prototype)
   (:documentation "Changes prototype of OBJECT to NEW-PROTOTYPE")
   (:method ((object prototype-object) new-prototype)
     (setf (prototype object) new-prototype)))
-
-#+lispworks
-(defun find-slot (class slot)
-  (when (typep slot 'slot-definition)
-    (return-from find-slot slot))
-  (find-if (lambda (slot-def) 
-             (eq (slot-definition-name slot-def) slot))
-           (class-slots class)))
 
 (defmethod slot-boundp-using-class ((class prototype-class) object slotd)
 ;  #+lispworks (setf slotd (find-slot class slotd))
@@ -229,4 +204,23 @@ of it is missing from class definition."
           (%slot-missing class instance slot op new-value))
       (prototype-missing () nil))))
 
+(defmethod reset-slots ((prototype-object prototype-object))
+  (change-prototype prototype-object nil)
+  (clrhash (slot-value prototype-object 'hash)))
 ;;;; vim: ft=lisp et
+
+(defun hash-table-alist (table)
+  "Returns an association list containing the keys and values of hash table
+TABLE."
+  (let ((alist nil))
+    (maphash (lambda (k v)
+               (push (cons k v) alist))
+             table)
+    alist))
+
+(defgeneric direct-slots-alist (prototype-object)
+  (:documentation "Get direct slots as associated list"))
+
+(defmethod direct-slots-alist ((prototype-object prototype-object))
+  (hash-table-alist (hash prototype-object)))
+
