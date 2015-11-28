@@ -31,7 +31,9 @@
   :components ((:file "package")
                (:file "mop-utils")
                (:file "prototype")
-               (:file "prototype-ext")))
+               (:file "prototype-ext")
+               (:file "js-syntax")
+               (:file "php-syntax")))
 
 (defmethod perform ((o asdf:test-op) (c (eql (find-system :prototype))))
     (declare (ignorable o c))    

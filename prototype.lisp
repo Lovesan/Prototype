@@ -207,7 +207,6 @@ of it is missing from class definition."
 (defmethod reset-slots ((prototype-object prototype-object))
   (change-prototype prototype-object nil)
   (clrhash (slot-value prototype-object 'hash)))
-;;;; vim: ft=lisp et
 
 (defun hash-table-alist (table)
   "Returns an association list containing the keys and values of hash table
@@ -216,7 +215,7 @@ TABLE."
     (maphash (lambda (k v)
                (push (cons k v) alist))
              table)
-    alist))
+    (nreverse alist)))
 
 (defgeneric direct-slots-alist (prototype-object)
   (:documentation "Get direct slots as associated list"))
@@ -224,3 +223,25 @@ TABLE."
 (defmethod direct-slots-alist ((prototype-object prototype-object))
   (hash-table-alist (hash prototype-object)))
 
+(defmethod print-object ((object prototype-object) stream)
+  (if (not *print-escape*)
+    (call-next-method)
+    (let ((slots (direct-slots-alist object))
+          (case (case (readtable-case *readtable*)
+                  ((:downcase :upcase) '(:case :downcase))
+                  (t '()))))
+      (pprint-logical-block (stream '())
+        (write-char #\{ stream)
+        (pprint-newline :fill stream)
+        (loop :for ((name . value) . rest) :on slots :do
+          (pprint-logical-block (stream '())
+            (apply #'write name :stream stream case)
+            (write-string " : " stream)
+            (write value :stream stream)
+            (when rest (write-string ", " stream))
+            (pprint-newline :fill stream)))
+        (pprint-newline :fill stream)
+        (write-char #\} stream))
+      object)))
+
+;;;; vim: ft=lisp et

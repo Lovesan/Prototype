@@ -18,4 +18,9 @@
    #:reset-slots
    #:direct-slots-alist
    #:prototype-object-ext
-   #:fn-no-inherit))
+   #:fn-no-inherit
+
+   #:enable-js-syntax
+   #:disable-js-syntax
+   #:enable-php-syntax
+   #:disable-php-syntax))
